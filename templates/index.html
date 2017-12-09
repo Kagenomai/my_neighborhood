@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Bootstrap 4 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <!-- Bootstrap 4 Font Awesome -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+</head>
+  <body>
+    <div class="container-fluid p-0">
+      <div class="navigation options-nav col-12 p-2">
+          <nav class="nav navbar navbar-light sidebar p-2">
+            <a href="#" class="text-muted">Welcome to My Neighborhood</a>
+            <ul class="nav nav-pills">
+              <div class="form-group form-inline">
+                <input class="form-control my-sm-2" id="search-general" type="text" placeholder="Ex: Pizza, Parks, Chinese">
+                <button class="btn btn-success my-0 my-sm-0" id="search-general-btn" data-bind="click: generalSearch">Search</button>
+              </div>
+            </ul>
+            <hr>
+            <ul class="nav nav-pills mb-3">
+              <input class="form-control" id="filter-list" type="text">
+              <button class="btn btn-primary" id="filter-list-btn" data-bind="event: {click: filterList}">Filter</button>
+            </ul>
+            <ul class="nav nav-pills flex-column" data-bind="foreach: getList">
+              <div class="card card-inverse card-info" data-bind="event: {click: $parent.getMoreInfo}">
+                <div class="card-block p-2">
+                    <h4 class="card-title" data-bind="text: name"></h4>
+                    <h6 class="card-subtitle text-muted" data-bind="text: shortAddress"></h6>
+                </div>
+              </div>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      <div id="map" data-bind="googleMapsAPI: locationList"></div>
+    </div>
+    <script
+        src=
+        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyCwv2Ak7dQ86nExw3JxglRjsrtpIRpdO1Q&v=3">
+    </script>
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <!-- Bootstrap 4 Tether -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <!-- Bootstrap 4 JS -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+    <script src="{{url_for('static', filename='js/app.js')}}"></script>
+
+  </body>
+</html>
