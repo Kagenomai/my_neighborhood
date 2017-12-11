@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap 4 -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
     <!-- Bootstrap 4 Font Awesome -->
@@ -14,17 +16,17 @@
             <a href="#" class="text-muted">Welcome to My Neighborhood</a>
             <ul class="nav nav-pills">
               <div class="form-group form-inline">
-                <input class="form-control my-sm-2" id="search-general" type="text" placeholder="Ex: Pizza, Parks, Chinese">
+                <input class="form-control my-sm-2" id="search-general" type="text" data-bind="textInput: searchBox" placeholder="Ex: Pizza, Parks, Chinese">
                 <button class="btn btn-success my-0 my-sm-0" id="search-general-btn" data-bind="click: generalSearch">Search</button>
               </div>
             </ul>
             <hr>
             <ul class="nav nav-pills mb-3">
-              <input class="form-control" id="filter-list" type="text">
-              <button class="btn btn-primary" id="filter-list-btn" data-bind="event: {click: filterList}">Filter</button>
+              <input class="form-control" id="filter-list" type="text" data-bind="textInput: filterBox, event: {keyup: filterList}">
+              <button class="btn btn-primary" id="filter-list-btn" data-bind="">Filter</button>
             </ul>
             <ul class="nav nav-pills flex-column" data-bind="foreach: getList">
-              <div class="card card-inverse card-info" data-bind="event: {click: $parent.getMoreInfo}">
+              <div class="card card-inverse card-info" data-bind="click: $parent.getMoreInfo">
                 <div class="card-block p-2">
                     <h4 class="card-title" data-bind="text: name"></h4>
                     <h6 class="card-subtitle text-muted" data-bind="text: shortAddress"></h6>
@@ -36,9 +38,10 @@
       </div>
       <div id="map" data-bind="googleMapsAPI: locationList"></div>
     </div>
-    <script
+    <!-- Google Map API -->
+    <script async defer
         src=
-        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyCwv2Ak7dQ86nExw3JxglRjsrtpIRpdO1Q&v=3">
+        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyCwv2Ak7dQ86nExw3JxglRjsrtpIRpdO1Q&v=3" onerror="googleError()">
     </script>
     <!-- JQuery -->
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
@@ -46,8 +49,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <!-- Bootstrap 4 JS -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+    <!-- Knockout JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+    <!-- Application JS -->
     <script src="{{url_for('static', filename='js/app.js')}}"></script>
-
   </body>
 </html>

@@ -46,51 +46,65 @@ const locations = [
     foursquare_id: '58d1de222f91cb7d7209cb60'
   }
 ];
-// Processing locations for the ViewModel
+/**
+* @constructor Processes location into observables for the ViewModel
+* @param location (object) initial locations
+*/
 var Location = function (location) {
   this.name = ko.observable(location.name);
   this.locations = ko.observableArray(location.location);
   this.shortAddress = ko.observable(location.address1);
+  // Returns the full address
   this.fullAddress = ko.computed(function() {
     return location.address1 + ' ' + location.address2
   });
   this.venue_id = ko.observable(location.foursquare_id);
 }
-
+/**
+* @constructor Handle all data flow between model and view
+*/
 var ViewModel = function () {
+  var self = this;
   // Get map DOM element
-  this.mapDiv = document.getElementById('map')
+  self.mapDiv = document.getElementById('map')
   // Constructor creates a new map
-  this.map = new google.maps.Map(this.mapDiv, {
+  self.map = new google.maps.Map(this.mapDiv, {
     center: {lat: 32.715738, lng: -117.1610838},
     zoom: 13,
     mapTypeControl: false
     });
   //Create instances observables for the Location List
-  this.locationList = ko.observableArray([]);
-  this.searchLocationsList = ko.observableArray([]);
+  self.locationList = ko.observableArray([]);
+  self.searchLocationsList = ko.observableArray([]);
   // Add locations to obsevables
   locations.forEach((location) => {
-    this.locationList.push(new Location(location));
+    self.locationList.push(new Location(location));
   });
   // Sets which list to show after a filter
-  this.getList = ko.pureComputed(function () {
+  self.getList = ko.pureComputed(function () {
     return this.searchLocationsList() == '' ? this.locationList() : this.searchLocationsList()
   }, this);
   // Init markers upon map load
-  this.favMarkersList = ko.observableArray([]);
+  self.favMarkersList = ko.observableArray([]);
   // Markers from the generalSearch
-  this.searchMarkersList = ko.observableArray([]);
-  //General search for location via Foursquare API
-  this.generalSearch = function (data, event) {
+  self.searchMarkersList = ko.observableArray([]);
+  // Gets value of the searchBox
+  self.searchBox = ko.observable();
+  self.filterBox = ko.observable();
+  /**
+  * @description General search for location via Foursquare API
+  * @param data (object) contains the data from the binding context of the viewModel
+  * @param event (object) DOM element
+  */
+  self.generalSearch = function (data, event) {
     hideMarkers(
-      this.searchMarkersList() != '' ? this.searchMarkersList() : this.favMarkersList()
+      self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList()
     );
     var map = data.map;
     var bounds = map.getBounds();
     var searchMarkersList = data.searchMarkersList();
     // Gets value of the searchBox
-    var searchAreaBox = document.getElementById('search-general').value;
+    var searchAreaBox = data.searchBox();
     // Checks for empty SearchBox
     if (searchAreaBox == '') {
       window.alert('Please enter a search item.');
@@ -107,8 +121,11 @@ var ViewModel = function () {
         'radius': '10000',
         'limit': '10'
         });
-      // AJAX call to Foursquare
-      // Returns JSON of venue search results
+        /**
+        * @description AJAX call to Foursquare
+        * @param url (string) API call url
+        * @return results (object) response JSON of venue search results
+        */
       $.get(url)
         .done(function (results) {
           if (results.meta.code == 200) {
@@ -142,56 +159,79 @@ var ViewModel = function () {
               searchMarkersList.push(marker);
               data.searchLocationsList.push(new Location(location));
               marker.addListener('click', function() {
+                var self = this;
                 // Create an onclick event to open the infowindow at each marker
                 populateInfoWindow(this, infowindow);
-                this.setIcon(makeMarkerIcon('FFFF24'));
+                self.setAnimation(google.maps.Animation.BOUNCE);
+                self.setIcon(makeMarkerIcon('FFFF24'));
+                setTimeout(function () {
+                  self.setAnimation(null);
+                  self.setIcon('');
+                }, 2000)
               });
               map.setZoom(13);
             }
           } else {
             window.alert('No results found. Please specify more details.');
           }
+      })
+      .fail(function (err) {
+        window.alert('Something went wrong.');
       });
     }
   }
-  // Filters through locationList
-  // Returns all partial matches to the filterBox input
-  this.filterList = function (data, event) {
+  /**
+  * @description Filters through locationList
+  * @param data (object) contains the data from the binding context of the viewModel
+  * @param event (object) DOM element
+  */
+  self.filterList = function (data, event) {
+    hideMarkers(
+      self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList()
+    );
     var locationList = data.searchLocationsList() != '' ? data.searchLocationsList() : data.locationList();
-    var filterBox = document.getElementById('filter-list').value;
-    if (filterBox != '') {
+    var markersList = data.searchMarkersList() != '' ? data.searchMarkersList() : data.favMarkersList();
+    var filterBox = data.filterBox();
+    // Checks to see if an alphabet has been entered
+    if (/[a-zA-Z]/.test(filterBox)) {
+      // Filters list to partial match of entered item
       var results = locationList.filter((item) => {
         return item.name().toLowerCase().indexOf(filterBox.toLowerCase()) > -1
       });
       data.searchLocationsList.removeAll();
       results.forEach((location) => {
+        // Filters marker list to match results
+        var marker = markersList.filter((item) => {
+           return item.title.toLowerCase().indexOf(location.name().toLowerCase()) > -1
+        });
+        for (var i = 0; i < marker.length; i++) {
+            marker[i].setMap(data.map);
+        }
         data.searchLocationsList.push(location)
       });
     } else {
       window.alert('Please specify a filter item.')
     }
   }
-  // AJAX call to foursquare for the clicked venue item
-  this.getMoreInfo = function (data) {
-    var url = 'https://api.foursquare.com/v2/venues/';
-    url += data.venue_id();
-    url += '?' + $.param({
-      'client_id': 'WJ5DDPCQKCPMKJGCNLJD3MI51APPH1HEYVFHLGI1KW4YN2QR',
-      'client_secret': 'QKNGDVIC4CVANGWBLG2J5ONQNCUYLBIZH3DX2Z4DFL03LQ0P',
-      'v': '20171101'
+  /**
+  * @description AJAX call to foursquare for the clicked venue item
+  * @param data (object) contains the data from the binding context of the Location data
+  * @param event (object) DOM element
+  */
+  self.getMoreInfo = function (data, event) {
+    var markersList = self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList();
+    var infowindow = new google.maps.InfoWindow();
+    // Filters marker list to match DOM element data
+    var marker = markersList.filter((item) => {
+       return item.title.toLowerCase().indexOf(data.name().toLowerCase()) > -1
     });
-    $.get(url)
-      .done(function (results) {
-        if (results.meta.code == 200) {
-          var infoUrl = results.response.venue.canonicalUrl;
-          window.open(infoUrl, '_blank');
-        } else {
-          window.alert('No page Found.')
-        }
-      })
-      .fail(function (err) {
-        window.alert('Something went wrong.');
-      });
+    marker[0].setAnimation(google.maps.Animation.BOUNCE);
+    marker[0].setIcon(makeMarkerIcon('FFFF24'));
+    setTimeout(function () {
+      marker[0].setAnimation(null);
+      marker[0].setIcon('');
+    }, 2000)
+    populateInfoWindow(marker[0], infowindow);
   }
 }
 
@@ -215,8 +255,15 @@ ko.bindingHandlers.googleMapsAPI = {
       viewModel.favMarkersList.push(marker);
       // Create an onclick event to open the infowindow at each marker.
       marker.addListener('click', function() {
+        var self = this;
+        // Set infowindow information
         populateInfoWindow(this, largeInfowindow);
-        this.setIcon(makeMarkerIcon('FFFF24'));
+        self.setAnimation(google.maps.Animation.BOUNCE);
+        self.setIcon(makeMarkerIcon('FFFF24'));
+        setTimeout(function () {
+          self.setAnimation(null);
+          self.setIcon('');
+        }, 2000)
       });
     }
     // Show result markers on the map
@@ -224,7 +271,11 @@ ko.bindingHandlers.googleMapsAPI = {
   }
 }
 
-// Display the markers on the maps
+/**
+* @description Display the markers on the maps
+* @param markers (object) Map markers to set on map
+* @param map (object) Map
+*/
 function showMarkers (markers, map) {
   var bounds = new google.maps.LatLngBounds();
   for (var i = 0; i < markers.length; i++) {
@@ -234,7 +285,10 @@ function showMarkers (markers, map) {
   map.fitBounds(bounds);
 }
 
-// Hides the markers on the maps
+/**
+* @description Hides the markers on the maps
+* @param markers (object) Map markers to set on map
+*/
 function hideMarkers (markers) {
   for (var i = 0; i < markers.length; i++) {
     markers[i].setMap(null);
@@ -249,7 +303,11 @@ function makeMarker() {
   return marker;
 }
 
-// Change the marker icon
+/**
+* @description Change the marker icon
+* @param markerColor (string) Color Hex number
+* @return markerImage (image) Marker icon
+*/
 function makeMarkerIcon(markerColor) {
   var markerImage = new google.maps.MarkerImage(
     'http://chart.googleapis.com/chart?chst=d_map_spin&chld=1.15|0|'+ markerColor +
@@ -261,7 +319,11 @@ function makeMarkerIcon(markerColor) {
   return markerImage;
 }
 
-// Initialize an instance of infowindow when the marker is clicked.
+/**
+* @description Initialize an instance of infowindow when the marker is clicked
+* @param marker (object) Map marker to set an infowindow on
+* @param infowindow (object) infowindow instance
+*/
 function populateInfoWindow(marker, infowindow) {
   var url = 'https://api.foursquare.com/v2/venues/';
   url += marker.id;
@@ -270,8 +332,11 @@ function populateInfoWindow(marker, infowindow) {
     'client_secret': 'QKNGDVIC4CVANGWBLG2J5ONQNCUYLBIZH3DX2Z4DFL03LQ0P',
     'v': '20171101'
   });
-  // AJAX call to Foursquare API using the stored venue id in the marker
-  // Returns JSON data about the venue
+  /**
+  * @description AJAX call to Foursquare API using the marker id
+  * @param url (string) API call url
+  * @return results (object) response JSON of venue search results
+  */
   $.get(url)
     .done(function (results) {
       var venue = results.response.venue;
@@ -283,11 +348,15 @@ function populateInfoWindow(marker, infowindow) {
         // Make sure the marker property is cleared if the infowindow is closed.
         infowindow.addListener('closeclick', function() {
           infowindow.marker = null;
-          marker.setIcon(makeMarkerIcon('0091ff'));
+          marker.setIcon('');
         });
         var streetViewService = new google.maps.StreetViewService();
         var radius = 50;
-        // Sets streetview image
+        /**
+        * @description Sets streetview image
+        * @param data (object) Marker info
+        * @param status (object) StreetViewStatus
+        */
         function getStreetView(data, status) {
           var htmlStr = '';
           if (status == google.maps.StreetViewStatus.OK) {
@@ -296,10 +365,18 @@ function populateInfoWindow(marker, infowindow) {
               nearStreetViewLocation, marker.position);
             // Set venue information within the infowindow
             htmlStr += `<div>${marker.title}</div><div id="pano"></div>`;
-            htmlStr += `<div>${venue.location.address}</div>`;
-            htmlStr += `<div>${venue.location.formattedAddress[1]}</div>`;
-            htmlStr += `<div>${venue.contact.formattedPhone}</div>`;
-            htmlStr += `<div>${venue.hours.status}</div>`;
+            if (venue.location.address) {
+              htmlStr += `<div>${venue.location.address}</div>`;
+            }
+            if (venue.location.formattedAddress[1]) {
+              htmlStr += `<div>${venue.location.formattedAddress[1]}</div>`;
+            }
+            if (venue.contact.formattedPhone) {
+              htmlStr += `<div>${venue.contact.formattedPhone}</div>`;
+            }
+            if (venue.hours) {
+              htmlStr += `<div>${venue.hours.status}</div>`;
+            }
             infowindow.setContent(htmlStr);
             var panoramaOptions = {
               position: nearStreetViewLocation,
@@ -313,15 +390,22 @@ function populateInfoWindow(marker, infowindow) {
               document.getElementById('pano'), panoramaOptions);
           } else {
             htmlStr +=`<div>${marker.title}</div><div>No StreetView was Found.</div>`;
-            htmlStr += `<div>${venue.location.address}</div>`;
-            htmlStr += `<div>${venue.location.formattedAddress[1]}</div>`;
-            htmlStr += `<div>${venue.contact.formattedPhone}</div>`;
-            htmlStr += `<div>${venue.hours.status}</div>`;
+            if (venue.location.address) {
+              htmlStr += `<div>${venue.location.address}</div>`;
+            }
+            if (venue.location.formattedAddress[1]) {
+              htmlStr += `<div>${venue.location.formattedAddress[1]}</div>`;
+            }
+            if (venue.contact.formattedPhone) {
+              htmlStr += `<div>${venue.contact.formattedPhone}</div>`;
+            }
+            if (venue.hours) {
+              htmlStr += `<div>${venue.hours.status}</div>`;
+            }
             infowindow.setContent(htmlStr);
           }
         }
-        // Use streetview service to get the closest streetview image within
-        // 50 meters of the markers position
+        // Use streetview service to get the closest streetview image within the parameter of the radius
         streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
         // Open the infowindow on the clicked marker.
         infowindow.open(map, marker);
@@ -331,5 +415,8 @@ function populateInfoWindow(marker, infowindow) {
       window.alert('Something went wrong.');
     });
 }
-
+// Google Map API error callback
+function googleError () {
+  window.alert('Google Maps could not be loaded.');
+}
 ko.applyBindings(new ViewModel());
