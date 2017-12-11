@@ -15,6 +15,10 @@ The My neighborhood App is a one page JavaScript application to search for nearb
   $ git clone https://github.com/nicholsont/my_neighborhood.git
   $ cd my_neighborhood
   ```
+2. Install dependencies
+  ```
+  $ pip install -r requirements.txt
+  ```
 
 
 ## Usage
