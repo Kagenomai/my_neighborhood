@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <title>My Neighborhood</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap 4 -->
@@ -11,38 +12,35 @@
 </head>
   <body>
     <div class="container-fluid p-0">
-      <div class="navigation options-nav col-12 p-2">
-          <nav class="nav navbar navbar-light sidebar p-2">
-            <a href="#" class="text-muted">Welcome to My Neighborhood</a>
-            <ul class="nav nav-pills">
-              <div class="form-group form-inline">
-                <input class="form-control my-sm-2" id="search-general" type="text" data-bind="textInput: searchBox" placeholder="Ex: Pizza, Parks, Chinese">
-                <button class="btn btn-success my-0 my-sm-0" id="search-general-btn" data-bind="click: generalSearch">Search</button>
+      <div class="navigation options-nav col-12 p-2" data-bind="visible: isVisible">
+        <nav class="nav navbar navbar-light sidebar p-2">
+          <button class="btn btn-secondary my-0 my-sm-0" data-bind="click: showSidebar">Collapse</button>
+          <div class="form-group form-inline">
+            <input class="form-control my-sm-2" id="search-general" type="text" data-bind="textInput: searchBox" placeholder="Ex: Pizza, Parks, Chinese">
+            <button class="btn btn-success my-0 my-sm-0" id="search-general-btn" data-bind="click: generalSearch">Search</button>
+          </div>
+          <hr>
+          <div class="input-group mb-sm-1">
+            <input class="form-control" id="filter-list" type="text" data-bind="textInput: filterBox, event: {keyup: filterList}">
+            <span class="input-group-addon" id="filter-list-btn">Filter</span>
+          </div>
+          <div data-bind="foreach: getList">
+            <div class="card card-inverse card-info" data-bind="click: $parent.getMoreInfo">
+              <div class="card-block p-2">
+                  <h4 class="card-title" data-bind="text: name"></h4>
+                  <h6 class="card-subtitle text-muted" data-bind="text: shortAddress"></h6>
               </div>
-            </ul>
-            <hr>
-            <ul class="nav nav-pills mb-3">
-              <input class="form-control" id="filter-list" type="text" data-bind="textInput: filterBox, event: {keyup: filterList}">
-              <button class="btn btn-primary" id="filter-list-btn" data-bind="">Filter</button>
-            </ul>
-            <ul class="nav nav-pills flex-column" data-bind="foreach: getList">
-              <div class="card card-inverse card-info" data-bind="click: $parent.getMoreInfo">
-                <div class="card-block p-2">
-                    <h4 class="card-title" data-bind="text: name"></h4>
-                    <h6 class="card-subtitle text-muted" data-bind="text: shortAddress"></h6>
-                </div>
-              </div>
-            </ul>
-          </nav>
+            </div>
+          </div>
+        </nav>
+      </div>
+      <div class="row">
+        <div class="col-1">
+          <button class="btn btn-secondary my-0 my-sm-0" data-bind="click: showSidebar">Expand</button>
         </div>
       </div>
-      <div id="map" data-bind="googleMapsAPI: locationList"></div>
     </div>
-    <!-- Google Map API -->
-    <script async defer
-        src=
-        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyCwv2Ak7dQ86nExw3JxglRjsrtpIRpdO1Q&v=3" onerror="googleError()">
-    </script>
+    <div id="map" data-bind="googleMapsAPI: locationList"></div>
     <!-- JQuery -->
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <!-- Bootstrap 4 Tether -->
@@ -51,7 +49,14 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <!-- Knockout JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+    <!-- Locations JS -->
+    <script src="{{url_for('static', filename='js/locations.js')}}"></script>
     <!-- Application JS -->
     <script src="{{url_for('static', filename='js/app.js')}}"></script>
+    <!-- Google Map API -->
+    <script async defer
+        src=
+        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyCwv2Ak7dQ86nExw3JxglRjsrtpIRpdO1Q&v=3&callback=initMap" onerror="googleError()">
+    </script>
   </body>
 </html>
