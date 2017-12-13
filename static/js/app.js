@@ -27,54 +27,47 @@ function initMap() {
       zoom: 13,
       mapTypeControl: false
       });
-    self.infowindow = new google.maps.InfoWindow();
-    //Create instances observables for the Location List
+    // Create instances observables for the locations
     self.locationList = ko.observableArray([]);
-    self.searchLocationsList = ko.observableArray([]);
+    // Create instances observables for the markers list
+    self.markerList = ko.observableArray([]);
+    // Gets value of the searchBox
+    self.searchBox = ko.observable();
+    self.filterBox = ko.observable();
     // Add locations to obsevables
     locations.forEach((location) => {
       self.locationList.push(new Location(location));
     });
+    // Create instance of Google Maps InfoWindow
+    self.infowindow = new google.maps.InfoWindow();
+    // Set sidebar visibility
     self.isVisible = ko.observable(false);
+    // Show/hide sidebar
     self.showSidebar = function () {
       self.isVisible(!self.isVisible());
       if (self.isVisible() === true) {
-        $('#map').css('left','362px');
+        $('#map').css('left','355px');
         $('#toggle-btn').hide();
       } else {
-        $('#map').css('left','90px');
+        $('#map').css('left','50px');
         $('#toggle-btn').show();
       }
     }
-    // Sets which list to show after a filter
-    self.getList = ko.pureComputed(function () {
-      return this.searchLocationsList() != '' ? this.searchLocationsList() : this.locationList()
-    }, this);
-    // Init markers upon map load
-    self.favMarkersList = ko.observableArray([]);
-    // Markers from the generalSearch
-    self.searchMarkersList = ko.observableArray([]);
-    // Gets value of the searchBox
-    self.searchBox = ko.observable();
-    self.filterBox = ko.observable();
     /**
     * @description General search for location via Foursquare API
     * @param data (object) contains the data from the binding context of the viewModel
     * @param event (object) DOM element
     */
     self.generalSearch = function (data, event) {
-      hideMarkers(
-        self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList()
-      );
       var map = data.map;
       var bounds = map.getBounds();
-      var searchMarkersList = data.searchMarkersList();
       // Gets value of the searchBox
       var searchAreaBox = data.searchBox();
       // Checks for empty SearchBox
       if (searchAreaBox == '') {
         window.alert('Please enter a search item.');
       } else {
+        hideMarkers(data.markerList());
         //Set up Foursuare API url
         var url = 'https://api.foursquare.com/v2/venues/explore';
         url += '?' + $.param({
@@ -99,11 +92,12 @@ function initMap() {
               if (response == '') {
                 window.alert(results.response.warning.text)
               }
+              data.locationList.removeAll();
+              data.markerList.removeAll();
               // Sets each marker with the data from returned API results
               for(var i = 0; i < response.length; i++){
                 var marker = makeMarker();
                 var venue = response[i].venue;
-                var infowindow = self.infowindow;
                 var location = {
                   name: venue.name,
                   location: [{
@@ -114,20 +108,19 @@ function initMap() {
                   address2: venue.location.formattedAddress[1],
                   foursquare_id: venue.id
                 }
+                // Push locationList observableArray
+                data.locationList.push(new Location(location));
                 marker.id = venue.id;
                 marker.setTitle(venue.name);
                 marker.setPosition({
                   lat: venue.location.lat,
                   lng: venue.location.lng
                 });
-                marker.setMap(map);
-                // Push the marker to our observable array of search result markers
-                searchMarkersList.push(marker);
-                data.searchLocationsList.push(new Location(location));
+                marker.setVisible(true);
                 marker.addListener('click', function() {
                   var self = this;
                   // Create an onclick event to open the infowindow at each marker
-                  populateInfoWindow(this, infowindow);
+                  populateInfoWindow(this, self.infowindow);
                   self.setAnimation(google.maps.Animation.BOUNCE);
                   self.setIcon(makeMarkerIcon('FFFF24'));
                   setTimeout(function () {
@@ -135,13 +128,11 @@ function initMap() {
                     self.setIcon('');
                   }, 1400)
                 });
-                map.addListener('center_changed', function() {
-                  window.setTimeout(function() {
-                    map.panTo(marker.getPosition());
-                  }, 3000);
-                });
+                // Push to markerList observable array
+                data.markerList.push(marker);
                 map.setZoom(13);
               }
+              showMarkers(data.markerList(), map);
             } else {
               window.alert('No results found. Please specify more details.');
             }
@@ -151,48 +142,37 @@ function initMap() {
         });
       }
     }
-    /**
-    * @description Filters through locationList
-    * @param data (object) contains the data from the binding context of the viewModel
-    * @param event (object) DOM element
-    */
-    self.filterList = function (data, event) {
-      hideMarkers(
-        self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList()
-      );
-      var locationList = self.searchLocationsList() != '' ? self.searchLocationsList() : self.locationList();
-      var markersList = self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList();
-      var filterBox = self.filterBox();
-      // Checks to see if an alphabet has been entered
-      if (/[a-zA-Z]/.test(filterBox)) {
-        // Filters list to partial match of entered item
-        for (var i = 0; i < locationList.length; i++) {
-          if (locationList[i].name().toLowerCase().indexOf(filterBox.toLowerCase()) < 0) {
-            $('#list').children()[i].style.display = "none";
-            markersList[i].setMap(null);
+    // Filters through locationList
+    self.filterList = ko.computed(() => {
+      if (!self.filterBox()) {
+        // Show all markerList markers
+        self.markerList().forEach((marker) => {
+          marker.setVisible(true);
+        });
+        return self.locationList();
+      } else {
+        // Show filters markerList
+        self.markerList().filter((marker) => {
+          if (marker.title.toLowerCase().indexOf(self.filterBox().toLowerCase()) > -1) {
+            marker.setVisible(true);
           } else {
-            $('#list').children()[i].style.display = "";
-            markersList[i].setMap(self.map);
+            marker.setVisible(false);
           }
-        }
+        });
+        // input found, match keyword to filter
+        return self.locationList().filter((location) => {
+          return location.name().toLowerCase().indexOf(self.filterBox().toLowerCase()) > -1;
+        });
       }
-      if (filterBox == '') {
-        for (var i = 0; i < locationList.length; i++) {
-          $('#list').children()[i].style.display = "";
-          markersList[i].setMap(self.map);
-        }
-      }
-    }
+    });
     /**
     * @description AJAX call to foursquare for the clicked venue item
     * @param data (object) contains the data from the binding context of the Location data
     * @param event (object) DOM element
     */
     self.getMoreInfo = function (data, event) {
-      var markersList = self.searchMarkersList() != '' ? self.searchMarkersList() : self.favMarkersList();
-      var infowindow = self.infowindow;
       // Filters marker list to match DOM element data
-      var marker = markersList.filter((item) => {
+      var marker = self.markerList().filter((item) => {
          return item.title.toLowerCase().indexOf(data.name().toLowerCase()) > -1
       });
       marker[0].setAnimation(google.maps.Animation.BOUNCE);
@@ -201,7 +181,7 @@ function initMap() {
         marker[0].setAnimation(null);
         marker[0].setIcon('');
       }, 1400)
-      populateInfoWindow(marker[0], infowindow);
+      populateInfoWindow(marker[0], self.infowindow);
     }
   }
   ko.bindingHandlers.googleMapsAPI = {
@@ -213,20 +193,18 @@ function initMap() {
           document.getElementById('search-general'));
       // Bias the searchbox to within the bounds of the map.
       searchBox.setBounds(viewModel.map.getBounds());
-      var infowindow = viewModel.infowindow;
       // Processes the location array to create an array of markers on initialize.
       for (var i = 0; i < value.length; i++) {
         marker = makeMarker();
         marker.setPosition(value[i].locations()[0]);
         marker.setTitle(value[i].name());
         marker.id = value[i].venue_id();
-        // Push the marker to our observable array of markers.
-        viewModel.favMarkersList.push(marker);
+        marker.setVisible(true);
         // Create an onclick event to open the infowindow at each marker.
         marker.addListener('click', function() {
           var self = this;
           // Set infowindow information
-          populateInfoWindow(this, infowindow);
+          populateInfoWindow(this, viewModel.infowindow);
           self.setAnimation(google.maps.Animation.BOUNCE);
           self.setIcon(makeMarkerIcon('FFFF24'));
           setTimeout(function () {
@@ -234,9 +212,11 @@ function initMap() {
             self.setIcon('');
           }, 1400)
         });
+        // Push to markerList observable array
+        viewModel.markerList.push(marker);
       }
       // Show result markers on the map
-      showMarkers(viewModel.favMarkersList(), viewModel.map)
+      showMarkers(viewModel.markerList(), viewModel.map)
     }
   }
   ko.applyBindings(new ViewModel());
@@ -258,7 +238,6 @@ function showMarkers (markers, map) {
   }
   map.fitBounds(bounds);
 }
-
 /**
 * @description Hides the markers on the maps
 * @param markers (object) Map markers to set on map
@@ -268,7 +247,6 @@ function hideMarkers (markers) {
     markers[i].setMap(null);
   }
 }
-
 // Initialize a marker instance
 function makeMarker() {
   var marker = new google.maps.Marker({
@@ -276,7 +254,6 @@ function makeMarker() {
   });
   return marker;
 }
-
 /**
 * @description Change the marker icon
 * @param markerColor (string) Color Hex number
@@ -292,7 +269,6 @@ function makeMarkerIcon(markerColor) {
     new google.maps.Size(21,34));
   return markerImage;
 }
-
 /**
 * @description Initialize an instance of infowindow when the marker is clicked
 * @param marker (object) Map marker to set an infowindow on

@@ -11,9 +11,9 @@
     <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
 </head>
   <body>
-    <div class="container-fluid p-0">
-      <div class="navigation options-nav col-12 p-2" data-bind="visible: isVisible">
-        <nav class="nav navbar navbar-light sidebar p-2">
+    <div class="container-fluid px-2 py-1">
+      <div class="navigation options-nav col-12 pl-0 py-0" data-bind="visible: isVisible">
+        <nav class="nav navbar navbar-light sidebar px-1 py-0">
           <button class="btn btn-secondary my-0 my-sm-0" data-bind="click: showSidebar">Collapse</button>
           <div class="form-group form-inline">
             <input class="form-control my-sm-2" id="search-general" type="text" data-bind="textInput: searchBox" placeholder="Ex: Pizza, Parks, Chinese">
@@ -21,26 +21,28 @@
           </div>
           <hr>
           <div class="input-group mb-sm-1">
-            <input class="form-control" id="filter-list" type="text" data-bind="textInput: filterBox, event: {keyup: filterList}">
+            <input class="form-control" id="filter-list" type="text" data-bind="textInput: filterBox">
             <span class="input-group-addon" id="filter-list-btn">Filter</span>
           </div>
-          <div id="list" data-bind="foreach: getList">
+          <div id="list" data-bind="foreach: filterList">
             <div class="card card-inverse card-info" data-bind="click: $parent.getMoreInfo">
               <div class="card-block p-2">
-                  <h4 class="card-title" data-bind="text: name"></h4>
-                  <h6 class="card-subtitle text-muted" data-bind="text: shortAddress"></h6>
+                  <h4 class="card-title" data-bind="text: $data.name"></h4>
+                  <h6 class="card-subtitle text-muted" data-bind="text: $data.shortAddress"></h6>
               </div>
             </div>
           </div>
         </nav>
       </div>
-      <div class="row">
+      <aside class="row">
         <div class="col-1">
-          <button class="btn btn-secondary my-0 my-sm-0" id="toggle-btn" data-bind="click: showSidebar">Expand</button>
+          <button class="btn btn-secondary" id="toggle-btn" data-bind="click: showSidebar"><i class="fa fa-caret-right"></i></button>
         </div>
-      </div>
+      </aside>
     </div>
-    <div id="map" data-bind="googleMapsAPI: locationList"></div>
+    <main>
+      <div id="map" data-bind="googleMapsAPI: locationList"></div>
+    </main>
     <!-- JQuery -->
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <!-- Bootstrap 4 Tether -->
