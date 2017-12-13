@@ -30,7 +30,6 @@ function initMap() {
     self.infowindow = new google.maps.InfoWindow();
     //Create instances observables for the Location List
     self.locationList = ko.observableArray([]);
-    self.initialSearch = ko.observableArray([]);
     self.searchLocationsList = ko.observableArray([]);
     // Add locations to obsevables
     locations.forEach((location) => {
@@ -41,8 +40,10 @@ function initMap() {
       self.isVisible(!self.isVisible());
       if (self.isVisible() === true) {
         $('#map').css('left','362px');
+        $('#toggle-btn').hide();
       } else {
-        $('#map').css('left','90px');        
+        $('#map').css('left','90px');
+        $('#toggle-btn').show();
       }
     }
     // Sets which list to show after a filter
@@ -164,34 +165,21 @@ function initMap() {
       var filterBox = self.filterBox();
       // Checks to see if an alphabet has been entered
       if (/[a-zA-Z]/.test(filterBox)) {
-        self.initialSearch.removeAll();
         // Filters list to partial match of entered item
-        var results = locationList.filter((item) => {
-          self.initialSearch.push(item);
-          return item.name().toLowerCase().indexOf(filterBox.toLowerCase()) > -1
-        });
-        data.searchLocationsList.removeAll();
-        results.forEach((location) => {
-          // Filters marker list to match results
-          var marker = markersList.filter((item) => {
-             return item.title.toLowerCase().indexOf(location.name().toLowerCase()) > -1
-          });
-          for (var i = 0; i < marker.length; i++) {
-              marker[i].setMap(data.map);
+        for (var i = 0; i < locationList.length; i++) {
+          if (locationList[i].name().toLowerCase().indexOf(filterBox.toLowerCase()) < 0) {
+            $('#list').children()[i].style.display = "none";
+            markersList[i].setMap(null);
+          } else {
+            $('#list').children()[i].style.display = "";
+            markersList[i].setMap(self.map);
           }
-          data.searchLocationsList.push(location)
-        });
+        }
       }
       if (filterBox == '') {
-        if (data.searchLocationsList() != '' && self.searchMarkersList() != '') {
-          data.searchLocationsList.removeAll();
-          self.initialSearch().forEach((item) => {
-            data.searchLocationsList.push(item);
-          });
-          showMarkers(self.searchMarkersList(), self.map)
-        } else if (data.searchLocationsList() != '' && self.searchMarkersList() == '') {
-          data.searchLocationsList.removeAll();
-          showMarkers(self.favMarkersList(), self.map)
+        for (var i = 0; i < locationList.length; i++) {
+          $('#list').children()[i].style.display = "";
+          markersList[i].setMap(self.map);
         }
       }
     }

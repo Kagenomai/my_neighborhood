@@ -24,7 +24,7 @@
             <input class="form-control" id="filter-list" type="text" data-bind="textInput: filterBox, event: {keyup: filterList}">
             <span class="input-group-addon" id="filter-list-btn">Filter</span>
           </div>
-          <div data-bind="foreach: getList">
+          <div id="list" data-bind="foreach: getList">
             <div class="card card-inverse card-info" data-bind="click: $parent.getMoreInfo">
               <div class="card-block p-2">
                   <h4 class="card-title" data-bind="text: name"></h4>
@@ -36,7 +36,7 @@
       </div>
       <div class="row">
         <div class="col-1">
-          <button class="btn btn-secondary my-0 my-sm-0" data-bind="click: showSidebar">Expand</button>
+          <button class="btn btn-secondary my-0 my-sm-0" id="toggle-btn" data-bind="click: showSidebar">Expand</button>
         </div>
       </div>
     </div>
